@@ -2,11 +2,11 @@
 
 All custom modifications, enhancements, bug fixes, performance optimizations, and build improvements in this repository are documented below.
 
-This codebase is based on the upstream repository [hohojia886/gander](https://github.com/hohojia886/gander) at commit [`678c742e9cb37948664cad104a6246d2bb7ffcf3`](https://github.com/hohojia886/gander/tree/678c742e9cb37948664cad104a6246d2bb7ffcf3).
+This codebase is synced with the upstream repository [hohojia886/gander](https://github.com/hohojia886/gander) up to commit [`ebf8d609a130b9a7bddffcc22b5da57c9b3415cd`](https://github.com/hohojia886/gander/commit/ebf8d609a130b9a7bddffcc22b5da57c9b3415cd) (v2.4 Release).
 
 ---
 
-## v2.3.1 - Custom Enhancements & Maintenance Release
+## v2.4.1 - Custom Enhancements & Maintenance Release
 
 ### 📄 File Associations & Format Support
 - **PowerPoint (`.ppt`) Support**: Added full Microsoft PowerPoint MIME type definitions (`application/vnd.ms-powerpoint`, `application/mspowerpoint`, `application/ms-powerpoint`, `application/x-mspowerpoint`, `application/powerpoint`) to `AndroidManifest.xml` and `FileKind.kt`.
