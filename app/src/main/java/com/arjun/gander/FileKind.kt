@@ -105,6 +105,11 @@ enum class FileKind(val page: String) {
             "application/vnd.openxmlformats-officedocument.presentationml.slideshow",
             "application/vnd.ms-powerpoint.presentation.macroenabled.12",
             "application/vnd.openxmlformats-officedocument.presentationml.template",
+            "application/vnd.ms-powerpoint",
+            "application/mspowerpoint",
+            "application/ms-powerpoint",
+            "application/x-mspowerpoint",
+            "application/powerpoint"
         )
 
         /**

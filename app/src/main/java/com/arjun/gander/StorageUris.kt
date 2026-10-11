@@ -28,14 +28,18 @@ internal const val DOWNLOADS_AUTHORITY = "com.android.providers.downloads.docume
  * [primaryRoot] is Environment.getExternalStorageDirectory(), passed in rather
  * than read here so this stays answerable without a device.
  */
-internal fun folderDocId(path: String, primaryRoot: String): String? = when {
-    path.startsWith(primaryRoot) ->
-        "primary:" + path.removePrefix(primaryRoot).trimStart('/')
-    path.startsWith("/storage/") -> {
-        val rest = path.removePrefix("/storage/")
-        rest.substringBefore('/') + ":" + rest.substringAfter('/', "")
+internal fun folderDocId(path: String, primaryRoot: String): String? {
+    val normPath = path.replace('\\', '/').substringAfter(':')
+    val normRoot = primaryRoot.replace('\\', '/').substringAfter(':')
+    return when {
+        normPath.startsWith(normRoot) ->
+            "primary:" + normPath.removePrefix(normRoot).trimStart('/')
+        normPath.startsWith("/storage/") -> {
+            val rest = normPath.removePrefix("/storage/")
+            rest.substringBefore('/') + ":" + rest.substringAfter('/', "")
+        }
+        else -> null
     }
-    else -> null
 }
 
 /**

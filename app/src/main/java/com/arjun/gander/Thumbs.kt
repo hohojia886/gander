@@ -71,7 +71,7 @@ object Thumbs {
         val onDisk = !ArchiveProvider.isEntry(appCtx, uri)
         executor.execute {
             val bmp = (if (onDisk) fromDisk(appCtx, key) else null)
-                ?: generate(appCtx, uri, kind, ext)?.also { if (onDisk) toDisk(appCtx, key, it) }
+                ?: generate(appCtx, uri, kind)?.also { if (onDisk) toDisk(appCtx, key, it) }
                 ?: return@execute
             mem.put(key, bmp)
             main.post {
@@ -118,11 +118,11 @@ object Thumbs {
         } ?: 0
     }.getOrDefault(0)
 
-    private fun generate(ctx: Context, uri: Uri, kind: FileKind, ext: String): Bitmap? =
+    private fun generate(ctx: Context, uri: Uri, kind: FileKind): Bitmap? =
         runCatching {
-            when {
-                kind == FileKind.PDF -> pdfThumb(ctx, uri)
-                kind == FileKind.PLAYER -> videoThumb(ctx, uri)
+            when (kind) {
+                FileKind.PDF -> pdfThumb(ctx, uri)
+                FileKind.PLAYER -> videoThumb(ctx, uri)
                 else -> imageThumb(ctx, uri)
             }
         }.getOrNull()
@@ -142,7 +142,9 @@ object Thumbs {
         val rotation = exifRotation(ctx.contentResolver, uri)
         if (rotation == 0) return bmp
         val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
-        return Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
+        val rotated = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
+        if (rotated !== bmp) bmp.recycle()
+        return rotated
     }
 
     private fun videoThumb(ctx: Context, uri: Uri): Bitmap? {
@@ -152,9 +154,13 @@ object Thumbs {
             val frame = retriever.frameAtTime ?: return null
             val scale = SIZE.toFloat() / maxOf(frame.width, frame.height)
             if (scale >= 1f) frame
-            else Bitmap.createScaledBitmap(
-                frame, (frame.width * scale).toInt(), (frame.height * scale).toInt(), true
-            )
+            else {
+                val scaled = Bitmap.createScaledBitmap(
+                    frame, (frame.width * scale).toInt(), (frame.height * scale).toInt(), true
+                )
+                if (scaled !== frame) frame.recycle()
+                scaled
+            }
         } finally {
             runCatching { retriever.release() }
         }

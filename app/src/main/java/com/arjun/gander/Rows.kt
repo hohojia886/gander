@@ -1,5 +1,6 @@
 package com.arjun.gander
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
@@ -39,6 +40,7 @@ internal sealed interface Row {
 internal class RowAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     private val rows = mutableListOf<Row>()
 
+    @SuppressLint("NotifyDataSetChanged")
     fun submit(newRows: List<Row>) {
         rows.clear()
         rows.addAll(newRows)

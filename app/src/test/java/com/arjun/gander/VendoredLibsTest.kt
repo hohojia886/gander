@@ -145,7 +145,8 @@ class VendoredLibsTest {
     @Test
     fun theWordAndMarkdownFloorsWereMeasuredOnTheseFiles() {
         FLOORS_MEASURED_ON.forEach { (name, measured) ->
-            val digest = MessageDigest.getInstance("SHA-256").digest(File(LIB, name).readBytes())
+            val bytes = File(LIB, name).readText(Charsets.UTF_8).replace("\r\n", "\n").toByteArray(Charsets.UTF_8)
+            val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
             val fingerprint = digest.joinToString("") { "%02x".format(it) }
             assertWithMessage(
                 "$name is not the file the floors in WebViewFloor.kt were measured on. Measure it " +

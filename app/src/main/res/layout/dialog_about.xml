@@ -120,6 +120,19 @@
                 android:text="@string/about_licences_detail" />
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/aboutDefaultApp"
+            style="@style/Widget.Gander.About.Row">
+
+            <TextView
+                style="@style/Widget.Gander.About.Row.Title"
+                android:text="@string/open_default_settings" />
+
+            <TextView
+                style="@style/Widget.Gander.About.Row.Subtitle"
+                android:text="@string/open_default_settings_detail" />
+        </LinearLayout>
+
         <View style="@style/Widget.Gander.About.Divider" />
 
         <TextView

@@ -566,7 +566,7 @@ internal object ZipReader {
     private fun readsThrough(open: () -> InputStream): Boolean = try {
         open().use { input ->
             val buffer = ByteArray(BUFFER)
-            while (input.read(buffer) >= 0) Unit
+            while (input.read(buffer) >= 0) { /* continue reading */ }
         }
         true
     } catch (_: Exception) {

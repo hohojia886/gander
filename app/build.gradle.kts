@@ -59,7 +59,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.findByName("release")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
         debug {
             // So a debug build installs alongside an existing release install rather
@@ -151,6 +151,13 @@ android {
         // The instrumented tests read the same files, but out of the test
         // APK's assets, because a device has no access to the repo.
         getByName("androidTest") { assets.srcDir("../tests/fixtures/files") }
+    }
+
+    applicationVariants.all {
+        outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "Gander-v${versionName}-${buildType.name}.apk"
+        }
     }
 }
 

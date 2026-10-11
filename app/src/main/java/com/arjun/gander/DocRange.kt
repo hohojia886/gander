@@ -44,7 +44,7 @@ internal fun parseRange(header: String, total: Long): Pair<Long, Long>? {
     if (spec.isEmpty()) return null
     val start = spec.substringBefore('-').trim().toLongOrNull() ?: return null
     val end = spec.substringAfter('-').trim().toLongOrNull() ?: (total - 1)
-    if (start < 0 || start > end || start >= total) return null
+    if (start !in 0..end || start >= total) return null
     return start to minOf(end, total - 1)
 }
 

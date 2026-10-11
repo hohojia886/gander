@@ -124,6 +124,9 @@
     <string name="about_version">Version %1$s</string>
     <string name="about_permissions_label">Permissions this app requests</string>
     <string name="about_permissions_none">None</string>
+    <string name="open_default_settings">Open by default settings</string>
+    <string name="open_default_settings_detail">Choose which files automatically open in Gander</string>
+    <string name="open_default_settings_failed">Can\'t open settings</string>
     <!-- Sits under the permission line, which Gander reads back from Android at
          runtime rather than asserting for itself -->
     <string name="about_permissions_detail">Asked of Android just now, not written here in advance. Gander has no internet permission either, so it cannot send your files anywhere.</string>

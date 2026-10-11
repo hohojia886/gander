@@ -58,6 +58,7 @@ internal class LockScreenControls(
     internal var session: MediaSession? = null
         private set
 
+    @Suppress("DEPRECATION")
     private val notification = PlayerNotificationManager.Builder(
         context, NOTIFICATION_ID, CHANNEL_ID,
         object : PlayerNotificationManager.MediaDescriptionAdapter {

@@ -137,8 +137,11 @@ class ReleaseHygieneTest {
     @Test
     fun theTranslatedListingsWereMadeFromTheCurrentEnglish() {
         val digest = MessageDigest.getInstance("SHA-256")
-        digest.update(File(ENGLISH, "short_description.txt").readBytes())
-        digest.update(File(ENGLISH, "full_description.txt").readBytes())
+        fun readNormalized(file: File): ByteArray =
+            file.readText(Charsets.UTF_8).replace("\r\n", "\n").toByteArray(Charsets.UTF_8)
+
+        digest.update(readNormalized(File(ENGLISH, "short_description.txt")))
+        digest.update(readNormalized(File(ENGLISH, "full_description.txt")))
         val fingerprint = digest.digest().joinToString("") { "%02x".format(it) }
         assertWithMessage(
             "The English store listing changed after it was translated. Make the same change in " +

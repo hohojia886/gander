@@ -164,6 +164,7 @@ internal class VideoChrome(
         } else {
             // The player view hands the controls a listener of its own whatever it is given, so
             // only the controls can take the button away again
+            @Suppress("DEPRECATION")
             controls?.setOnFullScreenModeChangedListener(null)
             if (held != null) hold(null)
         }

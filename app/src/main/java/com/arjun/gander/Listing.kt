@@ -81,7 +81,7 @@ internal val WELCOME_BADGES = listOf(
     AUD_BADGE, MD_BADGE, ETC_BADGE,
 )
 
-internal val DIR_COLOR = 0xFF8A6D1F.toInt()
+internal const val DIR_COLOR = 0xFF8A6D1F.toInt()
 
 /**
  * A .zip, in the folder colour, because that is what it behaves as: tapped, it opens as a
@@ -102,7 +102,7 @@ internal val ZIP_BADGE = "ZIP" to DIR_COLOR
  * surface it sits at 2.83 against the DOC badge's 3.22, so it reads as a shape
  * exactly like its neighbours.
  */
-internal val ADD_COLOR = 0xFFAF2D18.toInt()
+internal const val ADD_COLOR = 0xFFAF2D18.toInt()
 
 /** The two or three letters, and the colour behind them, for a file. */
 internal fun badgeFor(name: String, mime: String?): Pair<String, Int> {

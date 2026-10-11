@@ -347,6 +347,10 @@ class MainActivity : AppCompatActivity() {
             dialog.dismiss()
             openLicences()
         }
+        view.findViewById<View>(R.id.aboutDefaultApp).setOnClickListener {
+            dialog.dismiss()
+            openDefaultAppSettings()
+        }
     }
 
     /**
@@ -366,6 +370,29 @@ class MainActivity : AppCompatActivity() {
             .orEmpty()
             .filterNot { it.startsWith("$packageName.") }
     }.getOrNull()
+
+    /**
+     * Opens system settings so the user can view or manage default app associations.
+     */
+    private fun openDefaultAppSettings() {
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Intent(android.provider.Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS, "package:$packageName".toUri())
+        } else {
+            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri())
+        }
+        val opened = runCatching {
+            startActivity(intent)
+            true
+        }.getOrElse {
+            runCatching {
+                startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri()))
+                true
+            }.getOrDefault(false)
+        }
+        if (!opened) {
+            Toast.makeText(this, R.string.open_default_settings_failed, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     /**
      * Gander shows its own licences. The asset is copied into the cache and
@@ -796,7 +823,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSortDialog() {
-        val orders = Settings.SortOrder.values()
+        val orders = Settings.SortOrder.entries
         val current = Settings.sortOrder(this)
         val items = orders.map { getString(it.labelRes) }.toTypedArray()
         val checkedItem = orders.indexOf(current).coerceAtLeast(0)

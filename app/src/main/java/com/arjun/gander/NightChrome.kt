@@ -104,6 +104,7 @@ internal class NightChrome(private val activity: AppCompatActivity) {
 
         toolbar.background = if (night) toolbarAtNight else toolbarAsPhone
         toolbar.setTitleTextColor(p.text)
+        @Suppress("UsePropertyAccessSyntax")
         toolbar.setNavigationIconTint(p.onSurface)
         // Named rather than cleared on the way back: a cleared tint is no tint, and these
         // icons are black paths that the tint in their own XML colours
