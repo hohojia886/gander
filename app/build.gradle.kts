@@ -23,6 +23,25 @@ android {
         testInstrumentationRunnerArguments["timeout_msec"] = "180000"
     }
 
+    androidResources {
+        localeFilters += listOf("en")
+    }
+
+    packaging {
+        resources.excludes += listOf(
+            "kotlin/**",
+            "META-INF/*.version",
+            "META-INF/**/*.kotlin_module",
+            "DebugProbesKt.bin",
+            "kotlin-tooling-metadata.json"
+        )
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     // The release keystore is intentionally not in the repo. Contributors without
     // it get an unsigned release build; debug builds always work.
     //
@@ -79,6 +98,11 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += listOf(
+            "-Xno-param-assertions",
+            "-Xno-call-assertions",
+            "-Xno-receiver-assertions"
+        )
     }
 
     lint {

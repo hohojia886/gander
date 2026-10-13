@@ -156,7 +156,7 @@ class ThumbsTest {
         val key = MessageDigest.getInstance("MD5")
             .digest(uriString.toByteArray())
             .joinToString("") { "%02x".format(it) }
-        return File(File(context.cacheDir, "thumbs"), "$key.png")
+        return File(File(context.cacheDir, "thumbs"), "$key.jpg")
     }
 
     @Test

@@ -58,7 +58,15 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.RenderersFactory
+import androidx.media3.exoplayer.audio.MediaCodecAudioRenderer
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.exoplayer.text.TextRenderer
+import androidx.media3.exoplayer.video.MediaCodecVideoRenderer
+import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.ui.PlayerView
 import androidx.webkit.WebMessageCompat
 import androidx.webkit.WebMessagePortCompat
@@ -1506,7 +1514,18 @@ open class ViewerActivity : AppCompatActivity() {
             }
         }
 
-        val exo = ExoPlayer.Builder(this)
+        val renderersFactory = RenderersFactory { handler, videoListener, audioListener, textListener, _ ->
+            arrayOf(
+                MediaCodecVideoRenderer(this, MediaCodecSelector.DEFAULT, 5000L, handler, videoListener, 50),
+                MediaCodecAudioRenderer(this, MediaCodecSelector.DEFAULT, handler, audioListener),
+                TextRenderer(textListener, handler.looper)
+            )
+        }
+        val mediaSourceFactory = ProgressiveMediaSource.Factory(
+            DefaultDataSource.Factory(this),
+            DefaultExtractorsFactory()
+        )
+        val exo = ExoPlayer.Builder(this, renderersFactory, mediaSourceFactory)
             // Asks for the speaker as a player is expected to, so a call or another app's
             // sound pauses this one, and pauses when headphones come out rather than carrying
             // on out loud. Both matter most with the screen off, with nobody watching.

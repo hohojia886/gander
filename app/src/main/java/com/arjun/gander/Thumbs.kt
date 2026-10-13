@@ -33,7 +33,9 @@ object Thumbs {
 
     private const val SIZE = 192
 
-    private val mem = LruCache<String, Bitmap>(48)
+    private val mem = object : LruCache<String, Bitmap>(8 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap): Int = value.allocationByteCount / 1024
+    }
     private val executor = Executors.newFixedThreadPool(2)
     private val main = Handler(Looper.getMainLooper())
 
@@ -187,7 +189,7 @@ object Thumbs {
         File(ctx.cacheDir, "thumbs").apply { mkdirs() }
 
     private fun diskFile(ctx: Context, key: String): File =
-        File(diskDir(ctx), "$key.png")
+        File(diskDir(ctx), "$key.jpg")
 
     private fun fromDisk(ctx: Context, key: String): Bitmap? {
         val f = diskFile(ctx, key)
@@ -198,7 +200,7 @@ object Thumbs {
     private fun toDisk(ctx: Context, key: String, bmp: Bitmap) {
         runCatching {
             diskFile(ctx, key).outputStream().use {
-                bmp.compress(Bitmap.CompressFormat.PNG, 90, it)
+                bmp.compress(Bitmap.CompressFormat.JPEG, 85, it)
             }
         }
     }

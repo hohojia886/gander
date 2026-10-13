@@ -37,6 +37,21 @@ internal sealed interface Row {
     ) : Row
 }
 
+internal class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    val headerText: TextView = view.findViewById(R.id.headerText)
+}
+
+internal class HintViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    val hintText: TextView = view.findViewById(R.id.hintText)
+}
+
+internal class ItemViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    val badge: TextView = view.findViewById(R.id.badge)
+    val thumb: ImageView = view.findViewById(R.id.thumb)
+    val title: TextView = view.findViewById(R.id.title)
+    val subtitle: TextView = view.findViewById(R.id.subtitle)
+}
+
 internal class RowAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     private val rows = mutableListOf<Row>()
 
@@ -75,40 +90,35 @@ internal class RowAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        val layout = when (viewType) {
-            0 -> R.layout.row_header
-            1 -> R.layout.row_hint
-            else -> R.layout.row_item
+        return when (viewType) {
+            0 -> HeaderViewHolder(inflater.inflate(R.layout.row_header, parent, false))
+            1 -> HintViewHolder(inflater.inflate(R.layout.row_hint, parent, false))
+            else -> ItemViewHolder(inflater.inflate(R.layout.row_item, parent, false))
         }
-        return object : RecyclerView.ViewHolder(inflater.inflate(layout, parent, false)) {}
     }
 
     override fun getItemCount(): Int = rows.size
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val row = rows[position]) {
-            is Row.Header ->
-                holder.itemView.findViewById<TextView>(R.id.headerText).text = row.title
-            is Row.Hint ->
-                holder.itemView.findViewById<TextView>(R.id.hintText).text = row.text
+            is Row.Header -> (holder as HeaderViewHolder).headerText.text = row.title
+            is Row.Hint -> (holder as HintViewHolder).hintText.text = row.text
             is Row.Item -> {
-                val badge = holder.itemView.findViewById<TextView>(R.id.badge)
-                val thumb = holder.itemView.findViewById<ImageView>(R.id.thumb)
-                badge.text = row.badge
-                badge.background.mutate().setTint(row.color)
-                badge.visibility = View.VISIBLE
-                thumb.visibility = View.GONE
-                thumb.setImageDrawable(null)
-                thumb.tag = null
+                val itemHolder = holder as ItemViewHolder
+                itemHolder.badge.text = row.badge
+                itemHolder.badge.background.mutate().setTint(row.color)
+                itemHolder.badge.visibility = View.VISIBLE
+                itemHolder.thumb.visibility = View.GONE
+                itemHolder.thumb.setImageDrawable(null)
+                itemHolder.thumb.tag = null
                 if (row.thumbUri != null) {
                     Thumbs.load(
-                        holder.itemView.context, row.thumbUri, row.thumbExt, thumb, badge
+                        holder.itemView.context, row.thumbUri, row.thumbExt, itemHolder.thumb, itemHolder.badge
                     )
                 }
-                holder.itemView.findViewById<TextView>(R.id.title).text = row.title
-                val sub = holder.itemView.findViewById<TextView>(R.id.subtitle)
-                sub.text = row.subtitle
-                sub.visibility = if (row.subtitle == null) View.GONE else View.VISIBLE
+                itemHolder.title.text = row.title
+                itemHolder.subtitle.text = row.subtitle
+                itemHolder.subtitle.visibility = if (row.subtitle == null) View.GONE else View.VISIBLE
                 // The row children are not-important for accessibility, so this is
                 // the whole announcement. Keeping the badge in it matters: the badge
                 // is hidden once a thumbnail loads, and the file type would go with it

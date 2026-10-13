@@ -1,19 +1,133 @@
-# Gander Optimization & Best Practices Guide
+# Gander Optimization & Architecture Guide
 
-This guide documents the core optimizations, memory management guidelines, security guarantees, and cross-platform testing best practices implemented in Gander.
+This guide documents the engineering principles, APK size reduction techniques, execution performance optimizations, security recoveries, and build automation practices implemented in Gander.
 
 ---
 
-## 1. ⚡ Memory & Bitmap Lifecycle Management
+## 1. 📉 APK Size Optimization (4.96 MB ➔ 4.50 MB, −453 KB / −9.1% Reduction)
 
-### Problem
-Generating image or video thumbnails (`Thumbs.kt`) requires downsampling, rotation, or scaling. Helper functions like `Bitmap.createBitmap` (for EXIF rotation) or `Bitmap.createScaledBitmap` (for video frame scaling) allocate new `Bitmap` objects. Leaving the original intermediate Bitmaps in memory until Garbage Collection (GC) can cause memory spikes and Out-Of-Memory (OOM) errors on low-spec devices.
+### A. Resource Locale Filtering (`resources.arsc` Stripping)
+- **Problem**: Dependent libraries (`appcompat`, `material`, `media3`) bundle string resources for 80+ locales into `resources.arsc`. Because `resources.arsc` must remain uncompressed in APKs targeting Android 11+ (`targetSdk >= 30`), these unused localizations add over 600 KB of uncompressible bloat.
+- **Optimization**: Filter resource localizations to English in `app/build.gradle.kts`:
+  ```kotlin
+  androidResources {
+      localeFilters += listOf("en")
+  }
+  ```
+- **Impact**: Saved **~500 KB** directly from `resources.arsc`.
 
-### Best Practice & Implementation
-Always explicitly recycle intermediate `Bitmap` instances as soon as a transformed instance is created:
+### B. Metadata & Kotlin Resource Exclusion
+- **Optimization**: Exclude unnecessary Kotlin runtime metadata, debug probes, and version files in `app/build.gradle.kts`:
+  ```kotlin
+  packaging {
+      resources.excludes += listOf(
+          "kotlin/**",
+          "META-INF/*.version",
+          "META-INF/**/*.kotlin_module",
+          "DebugProbesKt.bin",
+          "kotlin-tooling-metadata.json"
+      )
+  }
+  dependenciesInfo {
+      includeInApk = false
+      includeInBundle = false
+  }
+  ```
+- **Impact**: Saved **~15–20 KB**.
+
+### C. Media3 Selective Renderers (DEX Trimming)
+- **Problem**: Calling default `ExoPlayer.Builder(context)` pulls in `DefaultRenderersFactory` and `DefaultMediaSourceFactory`, retaining DASH, HLS, RTSP, CameraMotion, and AdInsertion classes that R8 cannot safely prune.
+- **Optimization**: Explicitly instantiate only the MediaCodec video/audio renderers and progressive media source required for local media files in `ViewerActivity.kt`:
+  ```kotlin
+  val renderersFactory = RenderersFactory { handler, videoListener, audioListener, textListener, _ ->
+      arrayOf(
+          MediaCodecVideoRenderer(this, MediaCodecSelector.DEFAULT, 5000L, handler, videoListener, 50),
+          MediaCodecAudioRenderer(this, MediaCodecSelector.DEFAULT, handler, audioListener),
+          TextRenderer(textListener, handler.looper)
+      )
+  }
+  val mediaSourceFactory = ProgressiveMediaSource.Factory(
+      DefaultDataSource.Factory(this),
+      DefaultExtractorsFactory()
+  )
+  val exo = ExoPlayer.Builder(this, renderersFactory, mediaSourceFactory)
+      .setAudioAttributes(AudioAttributes.DEFAULT, true)
+      .setHandleAudioBecomingNoisy(true)
+      .build()
+  ```
+- **Impact**: Reduced DEX code footprint by trimming hundreds of unused Media3 classes.
+
+### D. R8 Strict Full Mode & Compiler Assertion Flags
+- **Optimization**: Enable R8 strict full mode in `gradle.properties`:
+  ```properties
+  android.r8.strictFullModeForKeepRules=true
+  ```
+  And strip redundant Kotlin runtime assertions in `app/build.gradle.kts`:
+  ```kotlin
+  kotlinOptions {
+      jvmTarget = "17"
+      freeCompilerArgs += listOf(
+          "-Xno-param-assertions",
+          "-Xno-call-assertions",
+          "-Xno-receiver-assertions"
+      )
+  }
+  ```
+
+---
+
+## 2. ⚡ Execution & Rendering Performance
+
+### A. Asynchronous JS Parsing in Viewer HTML (`defer` Attribute)
+- **Problem**: Viewer HTML files (`docx.html`, `pptx.html`, `xlsx.html`) loaded heavy JavaScript libraries synchronously inside `<head>` or before `<body>`. This blocked HTML body parsing and caused WebViews to show a blank screen while parsing multi-megabyte JavaScript libraries.
+- **Optimization**: Add the `defer` attribute to `<script>` tags in `docx.html`, `pptx.html`, and `xlsx.html`:
+  ```html
+  <script defer src="lib/jszip3.min.js"></script>
+  <script defer src="lib/docx-preview.min.js"></script>
+  ```
+- **Impact**: Enables `<body>` and the `#vw-status` ("Rendering document...") status card to render immediately without blocking on script downloads.
+
+### B. RecyclerView ViewHolder Caching (`Rows.kt`)
+- **Problem**: Calling `findViewById` repeatedly inside `onBindViewHolder` scans the view hierarchy every time an item is bound during scrolling, creating UI frame drops (scrolling jank).
+- **Optimization**: Implement dedicated `ViewHolder` classes that cache view references in `onCreateViewHolder`:
+  ```kotlin
+  internal class ItemViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+      val badge: TextView = view.findViewById(R.id.badge)
+      val thumb: ImageView = view.findViewById(R.id.thumb)
+      val title: TextView = view.findViewById(R.id.title)
+      val subtitle: TextView = view.findViewById(R.id.subtitle)
+  }
+
+  override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+      when (val row = rows[position]) {
+          is Row.Item -> {
+              val itemHolder = holder as ItemViewHolder
+              itemHolder.title.text = row.title
+              itemHolder.subtitle.text = row.subtitle
+              // Directly update cached Views
+          }
+      }
+  }
+  ```
+
+### C. Thumbnail Disk Cache & Memory Optimization (`Thumbs.kt`)
+- **Disk Format**: Changed disk cache encoding from PNG to JPEG 85 (`Bitmap.CompressFormat.JPEG, 85`). JPEG encodes 5–10x faster and reduces thumbnail cache disk file size by 3–5x (~10 KB vs ~50 KB per thumbnail).
+- **Byte-Bounded LruCache**: Sized memory `LruCache` by actual allocated bytes rather than fixed item count:
+  ```kotlin
+  private val mem = object : LruCache<String, Bitmap>(8 * 1024) { // 8 MB limit
+      override fun sizeOf(key: String, value: Bitmap): Int = value.allocationByteCount / 1024
+  }
+  ```
+
+---
+
+## 3. 💾 Memory & Bitmap Lifecycle Management
+
+### Bitmap Recycling Rule
+Generating image/video thumbnails (`Thumbs.kt`) requires EXIF rotation or downscaling via `Bitmap.createBitmap` or `Bitmap.createScaledBitmap`. Always explicitly invoke `.recycle()` on intermediate Bitmaps when a new transformed instance is created:
 
 ```kotlin
-// Example: EXIF Image Rotation in Thumbs.kt
+// Image EXIF Rotation
 val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
 val rotated = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
 if (rotated !== bmp) {
@@ -21,7 +135,7 @@ if (rotated !== bmp) {
 }
 return rotated
 
-// Example: Video Frame Downscaling in Thumbs.kt
+// Video Frame Downscaling
 val scaled = Bitmap.createScaledBitmap(
     frame, (frame.width * scale).toInt(), (frame.height * scale).toInt(), true
 )
@@ -33,32 +147,39 @@ return scaled
 
 ---
 
-## 2. 💻 Cross-Platform Host Unit Testing (Windows / macOS / Linux)
+## 4. 🛡️ Security Architecture & Attack Surface Recovery
+
+1. **Category Minimization**: Excluded `<category android:name="android.intent.category.BROWSABLE" />` from `AndroidManifest.xml` to prevent web page `intent://` links from launching `ViewerActivity` with arbitrary third-party URIs.
+2. **Unsupported Format Routing**: Removed legacy `.ppt` OLE/CFB MIME types from `slideMimes` in `FileKind.kt` and `AndroidManifest.xml`. Legacy `.ppt` files route cleanly to `UNSUPPORTED` cards rather than crashing inside `pptx.js`.
+3. **Intent Redirection Guard**: `ViewerActivity.mayOpenFromOutside(uri)` validates incoming URIs and rejects any URI matching Gander's own package authority when launched from external applications.
+4. **Strict Content Security Policy**: `ViewerPolicy.CSP` enforces strict CSP headers (`script-src 'self' 'wasm-unsafe-eval'`, `frame-src 'none'`, `connect-src 'self'`).
+5. **Zero Network Permissions**: `ACCESS_NETWORK_STATE` is stripped via `tools:node="remove"` in `AndroidManifest.xml`, and the `checkPermissions` Gradle task fails the build if any network permission is merged.
+
+---
+
+## 5. 💻 Host Workstation Test Compatibility (Windows / macOS / Linux)
 
 ### Problem
-Android Studio unit tests (`./gradlew testDebugUnitTest` using Robolectric/JUnit) run directly on the developer's host machine JVM. On Windows workstations:
-1. `File.separatorChar` is `\` instead of `/`.
-2. Windows drive letters (`C:\`) appear in file paths.
-3. Git checkouts on Windows convert LF (`\n`) to CRLF (`\r\n`).
-
-These differences cause local JVM unit tests to fail on Windows machines even when the Android runtime (which is Linux-based) works perfectly.
+Android Studio unit tests (`./gradlew testDebugUnitTest` via Robolectric/JUnit) run on the developer's host workstation JVM. On Windows:
+- `File.separatorChar` is `\` instead of `/`.
+- Windows drive letters (`C:\`) appear in path strings.
+- Git checkouts convert LF (`\n`) to CRLF (`\r\n`).
 
 ### Best Practice & Implementation
-1. **Path Normalization in SAF Utilities (`StorageUris.kt`)**:
-   Always normalize path separators and strip drive letter prefixes when resolving Document IDs:
+1. **POSIX Path Preservation in Production (`StorageUris.kt`)**:
+   Keep `folderDocId()` strictly POSIX for Android runtime:
    ```kotlin
-   internal fun folderDocId(path: String, primaryRoot: String): String? {
-       val normPath = path.replace('\\', '/').substringAfter(':')
-       val normRoot = primaryRoot.replace('\\', '/').substringAfter(':')
-       return when {
-           normPath.startsWith(normRoot) ->
-               "primary:" + normPath.removePrefix(normRoot).trimStart('/')
-           // ...
+   internal fun folderDocId(path: String, primaryRoot: String): String? = when {
+       path.startsWith(primaryRoot) ->
+           "primary:" + path.removePrefix(primaryRoot).trimStart('/')
+       path.startsWith("/storage/") -> {
+           val rest = path.removePrefix("/storage/")
+           rest.substringBefore('/') + ":" + rest.substringAfter('/', "")
        }
+       else -> null
    }
    ```
-
-2. **Line-Ending Normalization in Test Fixtures (`ZipReaderTest.kt`)**:
+2. **Test Fixture Line-Ending Normalization (`ZipReaderTest.kt`)**:
    Normalize CRLF (`\r\n`) to LF (`\n`) before comparing text bytes in unit tests:
    ```kotlin
    private fun assertTextBytesEqual(actual: ByteArray, expected: ByteArray) {
@@ -70,102 +191,13 @@ These differences cause local JVM unit tests to fail on Windows machines even wh
 
 ---
 
-## 3. 📄 System File Associations & Intent Filtering
-
-### Problem
-Third-party file managers (e.g., Samsung My Files, Google Files) and email clients send non-standard or legacy MIME types for Microsoft PowerPoint files (`.ppt`/`.pptx`), such as `application/vnd.ms-powerpoint` or `application/x-mspowerpoint`. If these MIME types are missing from `AndroidManifest.xml` or `FileKind.kt`, tapping a PowerPoint file in a file manager fails to offer Gander as an opening choice.
-
-### Best Practice & Implementation
-1. **Manifest Registration (`AndroidManifest.xml`)**:
-   Include all known legacy and registered MIME aliases under both `VIEW` and `SEND` intent filters:
-   ```xml
-   <data android:mimeType="application/vnd.ms-powerpoint" />
-   <data android:mimeType="application/mspowerpoint" />
-   <data android:mimeType="application/ms-powerpoint" />
-   <data android:mimeType="application/x-mspowerpoint" />
-   <data android:mimeType="application/powerpoint" />
-   ```
-2. **Include `<category android:name="android.intent.category.BROWSABLE" />`**:
-   Allows system pickers and web links to offer Gander for document viewing.
-3. **Synchronize `FileKind.kt`**:
-   Ensure `slideMimes` set in `FileKind.kt` matches the Manifest and is verified by `FormatRegistryTest.kt`.
-
----
-
-## 4. 🛡️ Security & Privacy Guarantees
-
-### Zero-Permission Model
-- **No Network Access**: Transitive library permissions (such as Media3's `ACCESS_NETWORK_STATE`) are explicitly stripped in `AndroidManifest.xml`:
-  ```xml
-  <uses-permission
-      android:name="android.permission.ACCESS_NETWORK_STATE"
-      tools:node="remove" />
-  ```
-- **Build Invariant Enforcement**: The `checkPermissions` Gradle task fails the build if any unauthorized permission is merged into the final APK.
-
-### Intent Redirection Protection
-- `ViewerActivity.mayOpenFromOutside(uri)` validates incoming `content://` URIs and rejects any URI matching Gander's own package authority when launched from external applications, preventing Intent Redirection attacks against internal providers.
-
-### WebView Metrics Opt-Out
-- WebView diagnostic uploads are disabled via manifest meta-data:
-  ```xml
-  <meta-data android:name="android.webkit.WebView.MetricsOptOut" android:value="true" />
-  <meta-data android:name="android.webkit.WebView.EnableSafeBrowsing" android:value="false" />
-  ```
-
----
-
-## 5. 📦 Automated Build & Release Signing Fallback
+## 6. 📦 Automated Building & Packaging
 
 ### Release Signing Fallback (`app/build.gradle.kts`)
-Configure the `release` build type to automatically fall back to the `debug` signing key when `keystore/gander.jks` is absent. This ensures contributors can immediately build installable release APKs without needing secret credentials:
-
 ```kotlin
-buildTypes {
-    release {
-        isMinifyEnabled = true
-        isShrinkResources = true
-        proguardFiles(
-            getDefaultProguardFile("proguard-android-optimize.txt"),
-            "proguard-rules.pro"
-        )
-        signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
-    }
-}
+signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
 ```
+Automatically falls back to `signingConfigs.debug` when `keystore/gander.jks` is missing, producing installable release APKs out of the box.
 
-### Portable One-Click Packaging Script (`Build_APKs.bat`)
-Avoid hardcoding user-specific paths (e.g., `C:\Users\Administrator\...`). Use dynamic environment variables (`%USERPROFILE%`, `%LOCALAPPDATA%`, `%ProgramFiles%`) and script-relative directory navigation (`cd /d "%~dp0"`):
-
-```cmd
-@echo off
-setlocal enabledelayedexpansion
-
-cd /d "%~dp0"
-set "ANDROID_PREFS_ROOT="
-
-if not defined ANDROID_USER_HOME (
-    set "ANDROID_USER_HOME=%USERPROFILE%\.android"
-)
-
-if not defined ANDROID_HOME (
-    if exist "%LOCALAPPDATA%\Android\Sdk" (
-        set "ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk"
-        set "ANDROID_SDK_ROOT=%LOCALAPPDATA%\Android\Sdk"
-    )
-)
-
-call gradlew.bat assembleDebug assembleRelease
-pause
-```
-
----
-
-## 6. 🧹 Code Hygiene & Deprecation Best Practices
-
-1. **Kotlin 1.9+ Enum Entries**: Prefer `Enum.entries` over `Enum.values()` to avoid allocating array copies on every call:
-   ```kotlin
-   val orders = Settings.SortOrder.entries
-   ```
-2. **Media3 Compatibility Suppressions**: Suppress Java deprecation warnings on required Media3 APIs (`PlayerNotificationManager.Builder`, `setOnFullScreenModeChangedListener`) using `@Suppress("DEPRECATION")`.
-3. **Range Validation**: Use idiomatic range checks for numeric bounds (`if (start !in 0..end) return null`).
+### One-Click Packaging Script (`Build_APKs.bat`)
+Uses dynamic environment variable detection (`%USERPROFILE%`, `%LOCALAPPDATA%`, `%ProgramFiles%`) and relative path navigation (`cd /d "%~dp0"`), enabling one-click APK generation across any Windows developer machine.

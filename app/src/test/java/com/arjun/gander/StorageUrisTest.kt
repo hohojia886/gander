@@ -100,13 +100,13 @@ class StorageUrisTest {
 
     @Test
     fun aFileUriResolvesThroughItsPath() {
-        val uri = Uri.fromFile(java.io.File("$PRIMARY/Documents/lease.pdf"))
+        val uri = Uri.parse("file://$PRIMARY/Documents/lease.pdf")
         assertThat(docIdOf(parentOf(uri))).isEqualTo("primary:Documents")
     }
 
     @Test
     fun aFileUriOutsideSharedStorageHasNoFolder() {
-        val uri = Uri.fromFile(java.io.File("/data/data/com.example/files/x.pdf"))
+        val uri = Uri.parse("file:///data/data/com.example/files/x.pdf")
         assertThat(parentOf(uri)).isNull()
     }
 

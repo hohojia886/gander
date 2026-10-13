@@ -33,7 +33,7 @@ if not defined JAVA_HOME (
     if exist "%ProgramFiles%\Android\Android Studio\jbr" (
         set "JAVA_HOME=%ProgramFiles%\Android\Android Studio\jbr"
     ) else if exist "%LOCALAPPDATA%\Android\Android Studio\jbr" (
-        set "JAVA_HOME=%LOCALAPPDATA%\Android\Studio\jbr"
+        set "JAVA_HOME=%LOCALAPPDATA%\Android\Android Studio\jbr"
     )
 )
 

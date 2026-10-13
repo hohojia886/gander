@@ -6,7 +6,7 @@ This codebase is synced with the upstream repository [hohojia886/gander](https:/
 
 ---
 
-## v2.4.1 - Custom Enhancements & Maintenance Release
+## v2.4 - Custom Enhancements & Maintenance Release
 
 ### 📄 File Associations & Format Support
 - **PowerPoint (`.ppt`) Support**: Added full Microsoft PowerPoint MIME type definitions (`application/vnd.ms-powerpoint`, `application/mspowerpoint`, `application/ms-powerpoint`, `application/x-mspowerpoint`, `application/powerpoint`) to `AndroidManifest.xml` and `FileKind.kt`.

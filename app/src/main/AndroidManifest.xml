@@ -79,7 +79,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
                 <!-- content only. A file:// path from another app would be read with Gander's
                      access rather than the sender's, and with no storage permission the only
                      paths Gander can read are its own private ones. -->
@@ -109,11 +108,6 @@
                 <data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.template" />
                 <data android:mimeType="application/vnd.ms-powerpoint.presentation.macroEnabled.12" tools:ignore="AppLinkUrlError" />
                 <data android:mimeType="application/vnd.ms-powerpoint.presentation.macroenabled.12" />
-                <data android:mimeType="application/vnd.ms-powerpoint" />
-                <data android:mimeType="application/mspowerpoint" />
-                <data android:mimeType="application/ms-powerpoint" />
-                <data android:mimeType="application/x-mspowerpoint" />
-                <data android:mimeType="application/powerpoint" />
                 <data android:mimeType="application/vnd.ms-excel" />
                 <data android:mimeType="application/vnd.oasis.opendocument.spreadsheet" />
                 <data android:mimeType="application/vnd.oasis.opendocument.text" />
@@ -158,11 +152,6 @@
                 <data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.template" />
                 <data android:mimeType="application/vnd.ms-powerpoint.presentation.macroEnabled.12" tools:ignore="AppLinkUrlError" />
                 <data android:mimeType="application/vnd.ms-powerpoint.presentation.macroenabled.12" />
-                <data android:mimeType="application/vnd.ms-powerpoint" />
-                <data android:mimeType="application/mspowerpoint" />
-                <data android:mimeType="application/ms-powerpoint" />
-                <data android:mimeType="application/x-mspowerpoint" />
-                <data android:mimeType="application/powerpoint" />
                 <data android:mimeType="application/vnd.ms-excel" />
                 <data android:mimeType="application/vnd.oasis.opendocument.spreadsheet" />
                 <data android:mimeType="application/vnd.oasis.opendocument.text" />
