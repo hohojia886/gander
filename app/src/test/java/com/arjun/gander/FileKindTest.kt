@@ -2,6 +2,7 @@ package com.arjun.gander
 
 import com.arjun.gander.FileKind.ARCHIVE
 import com.arjun.gander.FileKind.DOCX
+import com.arjun.gander.FileKind.EPUB
 import com.arjun.gander.FileKind.IMAGE
 import com.arjun.gander.FileKind.IMAGE_WEB
 import com.arjun.gander.FileKind.MD
@@ -93,6 +94,9 @@ class FileKindTest {
 
             // A 3D model, the file a 3D printer's slicer takes
             "stl" to MODEL,
+
+            // A book, issue #50
+            "epub" to EPUB,
         )
 
         const val MIME_DOCX =
@@ -115,8 +119,8 @@ class FileKindTest {
 
     /** A count, so a silently deleted table row is noticed. */
     @Test
-    fun theTableCoversOneHundredAndTwoExtensions() {
-        assertThat(EXPECTED).hasSize(102)
+    fun theTableCoversOneHundredAndThreeExtensions() {
+        assertThat(EXPECTED).hasSize(103)
     }
 
     @Test
@@ -293,14 +297,17 @@ class FileKindTest {
     /**
      * Word, Excel and PowerPoint files are zips underneath, and so are .epub, .apk and .jar.
      * Only a file called .zip, or sent as one, is listed as an archive: the rest open as what
-     * they are, or not at all.
+     * they are, a book included, or not at all.
      */
     @Test
     fun onlyAZipIsTakenForAnArchive() {
         assertThat(FileKind.detect("docx", "application/zip")).isEqualTo(DOCX)
         assertThat(FileKind.detect("xlsx", null)).isEqualTo(XLSX)
         assertThat(FileKind.detect("pptx", null)).isEqualTo(PPTX)
-        assertThat(FileKind.detect("epub", null)).isEqualTo(UNSUPPORTED)
+        assertThat(FileKind.detect("epub", null)).isEqualTo(EPUB)
+        assertThat(FileKind.detect("", "application/epub+zip")).isEqualTo(EPUB)
+        // A book sent as a plain zip but named as a book is still a book: the name comes first
+        assertThat(FileKind.detect("epub", "application/zip")).isEqualTo(EPUB)
         assertThat(FileKind.detect("apk", null)).isEqualTo(UNSUPPORTED)
         assertThat(FileKind.detect("jar", null)).isEqualTo(UNSUPPORTED)
     }
@@ -312,6 +319,24 @@ class FileKindTest {
         assertThat(FileKind.detect("ppt", null)).isEqualTo(UNSUPPORTED)
         assertThat(FileKind.detect("odp", null)).isEqualTo(UNSUPPORTED)
         assertThat(FileKind.detect("", "application/octet-stream")).isEqualTo(UNSUPPORTED)
+    }
+
+    /** What may open as text unasked: a file with no viewer and no advice on the card. Issue #51. */
+    @Test
+    fun anUnknownFileHasNoViewerAndNoAdvice() {
+        assertThat(FileKind.isUnknown(UNSUPPORTED, "xyz")).isTrue()
+        assertThat(FileKind.isUnknown(UNSUPPORTED, "")).isTrue()
+        assertThat(FileKind.isUnknown(UNSUPPORTED, "ppt")).isFalse()
+        assertThat(FileKind.isUnknown(TEXT, "xyz")).isFalse()
+        assertThat(FileKind.isUnknown(PLAYER, "mp4")).isFalse()
+    }
+
+    /** The advice is written in the card's script, so its extensions and these are held together. */
+    @Test
+    fun theAdvisedExtensionsAreTheOnesTheCardHasWordsFor() {
+        val script = File("src/main/assets/viewer/unsupported.js").readText()
+        val named = Regex("""vwExt === "([a-z0-9]+)"""").findAll(script).map { it.groupValues[1] }.toSet()
+        assertThat(named).isEqualTo(FileKind.advisedExt)
     }
 
     // ---------------------------------------------------------------
@@ -357,9 +382,36 @@ class FileKindTest {
         assertThat(ARCHIVE.page).isEmpty()
     }
 
-    /** The two whose pages report themselves, take Go to page and turn over at night. */
+    /** The three whose pages report themselves and take Go to page. */
     @Test
-    fun onlyPdfAndWordArePaged() {
-        assertThat(FileKind.entries.filter { it.paged }).containsExactly(PDF, DOCX)
+    fun onlyPdfWordAndBooksArePaged() {
+        assertThat(FileKind.entries.filter { it.paged }).containsExactly(PDF, DOCX, EPUB)
+    }
+
+    /** Night mode is for paper. A book's page follows the phone's theme and has none. */
+    @Test
+    fun onlyPdfAndWordTurnOverAtNight() {
+        assertThat(FileKind.entries.filter { it.turnsOver }).containsExactly(PDF, DOCX)
+    }
+
+    /** Pages and pictures. A sheet keeps the WebView's own, which goes further in on a cell. */
+    @Test
+    fun pagesAndPicturesInTheWebViewHaveTheAppsDoubleTap() {
+        assertThat(FileKind.entries.filter { it.zoomedOnDoubleTap })
+            .containsExactly(PDF, DOCX, PROSE, PPTX, IMAGE_WEB)
+    }
+
+    /**
+     * The two halves of that double tap. A page whose kind the app zooms must turn Chromium's
+     * own off, or both zoom, and no other page may, or its double tap would do nothing.
+     */
+    @Test
+    fun aPageTurnsChromiumsDoubleTapOffExactlyWhereTheAppZoomsItsOwn() {
+        FileKind.entries.filter { it.page.isNotEmpty() }.forEach { kind ->
+            val css = File("src/main/assets/viewer/${kind.page}").readText()
+            val off = "html { touch-action: manipulation; }" in css
+            assertThat("${kind.page} turns it off: $off")
+                .isEqualTo("${kind.page} turns it off: ${kind.zoomedOnDoubleTap}")
+        }
     }
 }

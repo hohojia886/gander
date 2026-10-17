@@ -50,6 +50,7 @@ should stay obviously so.
 | `word-unrecorded.docx` | Issue #47. Pages Word began where it can save no record, which it writes only in a run. Four pages, as `docProps/app.xml` says: page two begins among blank lines, page three where Word recorded it, and page four on a table row whose first cell is empty, under a header row that repeats. |
 | `word-colours.docx` | Issue #47's night mode for Word: ink, a coloured heading, a colour given only by the theme, a highlight, a shaded cell, a bordered paragraph, a photograph that must stay as it is, and a white-backed figure and an ink drawing on nothing that must turn over. |
 | `word-lines.docx` | Lines as Word sets them (`docx-lines.js`): the theme's Cambria at 11pt with Word's 1.15 lines, a blank line, spacing of at least 14pt and of at least 10pt, exactly 12pt, a run in Arial, and three List Paragraph items, a style asking for no space between its paragraphs. |
+| `cell-directions.docx` | One table row whose cells set each text direction docx-preview reads: `lrTb`, which in Word is plain left-to-right text and which docx-preview drew vertical (`drawLrTbAcross` in `docx.js`), `tbRl` and `btLr`, which are vertical, and none. |
 | `budget.xlsx` | Three sheets, so the sheet tabs have something to switch between. |
 | `budget.csv` | The same rows as the first sheet. Routes to the spreadsheet viewer, not the text one. |
 | `utf8.csv` | Issue #37. UTF-8 with no byte order mark, which SheetJS reads as Latin-1 when handed bytes. Letters of two, three and four bytes. |
@@ -69,6 +70,7 @@ should stay obviously so.
 | `unreadable.pptx` | Issue #48. A chart whose part is missing from the file, which PPTXjs threw on as the reported deck did, and a picture with no image on a layout, with a slide that has neither between them. That slide has two shaded boxes PPTXjs throws on, one with text and one without, and the layout an empty picture placeholder it throws on. Only those may be left out, and a box marks each but the box without text and the placeholder. |
 | `charted.pptx` | Issue #48. A column chart that draws, with text beside it and a slide after it. The test makes nv.d3 throw as it draws the chart, and only the chart may be missing. |
 | `undrawn.pptx` | Issue #48. A Windows metafile, which LibreOffice draws and a browser does not, a PNG that draws, a PNG cut short after its header, and a doughnut chart, a type PPTXjs does not draw. Nothing throws; a box marks each but the PNG that draws. |
+| `grounds.pptx` | Issue #53. A master whose background is a pattern, as the reported deck's is, which PPTXjs cannot draw. One slide takes it, one says it has no background, and one has its own dark blue. The first two must come out white or near it, not see-through on the page's grey, and the third blue. |
 | `report.docm`, `report.dotx` | Word's relatives: `report.docx` with its main part declared as a macro-enabled document's and as a template's, which is all that tells them apart. There are no macros in it. |
 | `budget.xltx` | `budget.xlsx` declared as an Excel template. |
 | `budget.xlsm` | `budget.xlsx` declared as a macro-enabled workbook, with no macros in it. |
@@ -78,7 +80,12 @@ should stay obviously so.
 | `plain.txt` | Text viewer, UTF-8. |
 | `snapshot.json` | Issue #32. A .json file as they arrive, all on one line. Its id is 2<sup>53</sup>+1, the smallest whole number a double cannot hold, so laying it out by parsing and restringifying would round it and be caught. Carries an accent and an emoji, both inside strings the formatter copies through. |
 | `utf16le.txt`, `utf16be.txt` | `vwEncodingOf` byte order mark sniffing. The mark itself must not appear in the output. |
-| `unknown.xyz` | An extension nothing claims, so the unsupported page offers to read it as text. |
+| `unknown.xyz` | An extension nothing claims, so the unsupported page offers to read it as text. Its bytes read as text, so the app opens it as text without that page. Issue #51. |
+| `opaque.xyz` | The same extension over bytes that are not text, a zero among them, so the app keeps the unsupported page for it. |
+| `harbour.epub` | Issue #50, an EPUB 3 in four chapters. A stylesheet that imports another, a picture named from a chapter, a stylesheet, an inline style and a drawing, a scrambled font, a link to a place in another chapter, and a nav contents list with one entry under another and one that goes nowhere. Chapter one carries script four ways and a picture on another host. Chapter two is six pages long and is not sound XML. "Heronsgate" is once in chapter one and twice in chapter three. |
+| `almanac.epub` | The older kind of book: contents in an NCX file, the package at the top of the zip, and a chapter whose name has a space in it. |
+| `locked.epub` | A book whose one chapter is encrypted, as DRM leaves it, which must be said rather than drawn as noise. |
+| `gazetteer.epub` | What real books did to the reader that `harbour.epub` does not: body margins set for a desktop window, a heading whose id is `title`, a box 1400 pixels wide with a picture in it, a table, a line of code and a formula wider than any phone, a table in a box that already scrolls, a note placed out of sight, two switches with a default, a chapter set in columns that offers a stylesheet for rows, and a page of a fixed size, 600 by 800, in a book whose first two chapters say they reflow. |
 | `captions.srt`, `captions.vtt` | The same two captions as SubRip and as WebVTT, which the text viewer shows as written. |
 | `playlist.m3u` | A playlist of tracks that are not there. Android labels it audio, and Gander shows it as text. |
 | `release.nfo` | The notes that come with a download, as text. |

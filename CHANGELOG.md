@@ -2,6 +2,54 @@
 
 ## 2.4 (2026-10-12)
 
+- A slide with no background is drawn on white, as PowerPoint draws it, and so is a slide whose
+  background Gander can't draw yet, such as a pattern (#53, thanks @PROTON-DARK, who sent the
+  deck). Gander drew both see-through, so the grey behind them showed and dark text on them was
+  hard to read.
+- A Word table whose cells are marked to run left to right, the usual way, now reads across.
+  Gander turned the text in every such cell on its side (thanks @XZY123lol, who brought this
+  over from 4PDA in #52).
+- In a book read right to left, such as one in Arabic, Hebrew, Persian or Urdu, Next is on the
+  left and Previous on the right, and the contents, the title and the chapter's name read right
+  to left, indented from the right (#54, thanks @yshalsager). Gander laid them all out left to
+  right.
+
+## 2.5 (2026-10-14)
+
+- An EPUB book opens (#50, asked for by @0xlne). Gander reads it a chapter at a time, with
+  the book's own contents list, Previous and Next under each chapter, the links between
+  chapters, and the book's pictures, fonts and styles. Contents is in the menu as well, so
+  the list is a tap away from anywhere in a chapter, and Back closes it. Text size, also in
+  the menu, makes a book's type smaller or larger in nine steps and keeps the line you were
+  on at the top. A book has no pages of its own, so the readout says how far through it you
+  are, as a percentage, and a book reopens at the line it was left on, at any text size and
+  whichever way the phone is held, its last page included. After a link to a note or to
+  another chapter, Back brings you back to the line you left, until you have read on from
+  where the link put you. A web link in a book shows its address, to copy: Gander still
+  opens none. Find searches the whole book, starting from where you are. A table or a line
+  of code too wide for the screen scrolls sideways by itself. The fixed pages of a picture book or a comic are
+  fitted to the width of the screen, and a book set in vertical columns is laid out in rows.
+  On a dark phone the page is dark, whatever colours the book set: a formula or a drawing
+  in black on a clear ground is shown in light ink, a darker picture of that kind gets
+  paper behind it, and a table's black lines are drawn light. A book locked with DRM
+  says so: only the app of the shop or library it came from can open one.
+- A file of a format Gander doesn't know opens as text straight away when it is text, without
+  the card that offered to (thanks @Cecalie, who asked in #51 for a way past the card). Gander
+  tells from the file's first bytes, and the line under the file's name says "Shown as text,
+  unknown format". A file that is not text keeps the card and its **View as text** button. So
+  does a `.ppt`, whose card says how to get it opened.
+- A double tap zooms a PDF, a Word, OpenDocument or Rich Text page, a slide or a picture in to
+  twice its width, about the place you tapped, and the next double tap puts it back. Pages and
+  slides went in by a fifth to two fifths before, a photo from a phone's camera by about nine
+  times, and a small picture not at all. A sheet keeps its own double tap, which goes in
+  further. A second tap held and dragged still zooms with one finger, and a pinch is as it was.
+- Gander is among the apps offered for a macro-enabled or binary Excel workbook (.xlsm, .xlsb)
+  and for a .js, .rb or .sql file, in a file manager's Open with and in the share sheet. On
+  Android 10 and later it was missing for these five, though it opened each from its own Open
+  button.
+
+## 2.4 (2026-10-12)
+
 - An animated WebP or PNG plays, as a GIF does (#49, reported in a Play review). Gander showed
   only its first frame.
 - A slide's bullets show as the arrows, squares and ticks they are, where some were empty boxes

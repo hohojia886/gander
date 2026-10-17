@@ -52,9 +52,9 @@ It cannot phone home because it does not even hold the INTERNET permission.
 - **Recent files** with thumbnail previews (image, video frame, PDF first page)
 - **Folder browsing** through one-time system grants, still without any storage permission. A folder's menu sorts its files by name, date or size, and filters them by kind
 - **Share sheet and "Open with" integration**: share a file from any app (chat, mail, browser) into Gander, or tap it in a file manager
-- **Find in document**: search inside PDF, Word, OpenDocument, Rich Text, every sheet of a workbook, slides, Markdown, text and code with match navigation
+- **Find in document**: search inside PDF, Word, OpenDocument, Rich Text, every chapter of a book, every sheet of a workbook, slides, Markdown, text and code with match navigation
 - **Select and copy text in a PDF**, and read one with a screen reader
-- **Picks up where you left off**: a PDF reopens at the page you were reading, however you open it
+- **Picks up where you left off**: a PDF reopens at the page you were reading and a book at the line, however you open it
 - **Night mode for PDFs and Word documents**: turns the page over for reading in the dark, keeping each colour's hue, turning scans and figures over with the text, and leaving photographs exactly as they were printed
 - **Word documents in pages**: a file saved in Word shows its pages where Word ended them, each with its own page number, and a page counter and Go to page as a PDF has
 - **Share and locate**: send the open file to any app, or jump to its folder in the file manager
@@ -70,6 +70,7 @@ It cannot phone home because it does not even hold the INTERNET permission.
 | Documents | PDF | pdf.js, offline in a sandboxed WebView |
 | | Word `.docx` `.docm` `.dotx` | docx-preview, offline in a sandboxed WebView |
 | | Word 97-2003 `.doc`, OpenDocument `.odt`, Rich Text `.rtf` | Gander's own readers, offline in a sandboxed WebView |
+| Books | EPUB `.epub`, without DRM | Gander's own reader, offline in a sandboxed WebView |
 | Spreadsheets | `.xlsx` `.xls` `.xlsm` `.xlsb` `.xltx` `.csv` `.ods` | SheetJS, offline |
 | Slides | PowerPoint `.pptx` `.ppsx` `.pptm` `.potx` | PPTXjs, offline |
 | Photos | JPG, PNG, WebP, HEIC/HEIF | Tiled deep-zoom image view, EXIF aware |
@@ -92,9 +93,10 @@ phone. Password-protected entries open with their password, and names written by
 tools in other languages are read as names rather than question marks, with **File name
 encoding** in the menu to correct a wrong guess.
 
-Anything else, including files with no extension at all, offers **View as text**, which
-shows the raw contents without renaming the file. Large files load 5 MB at a time with a
-**Show more** button, so they open instantly and can still be read end to end.
+Anything else, including files with no extension at all, opens as text when its first bytes
+read as text, and says so under the file's name. One that does not read as text offers **View
+as text**, which shows the raw contents without renaming the file. Large files load 5 MB at a
+time with a **Show more** button, so they open instantly and can still be read end to end.
 
 Word 97-2003 `.doc`, OpenDocument `.odt` and Rich Text `.rtf` are read by code written for
 Gander rather than by a bundled library: text and formatting, headings, lists, tables,

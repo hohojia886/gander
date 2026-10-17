@@ -25,15 +25,38 @@ enum class FileKind(val page: String) {
     /** A 3D model, drawn with WebGL by a page of Gander's own. STL for now. */
     MODEL("model.html"),
 
+    /**
+     * A book: a zip of web pages, read a chapter at a time by a page of Gander's own over
+     * the zip and sanitising libraries the app already carried. Issue #50.
+     */
+    EPUB("epub.html"),
+
     /** A .zip, which is listed rather than drawn: see ArchiveBrowser. Issue #30. */
     ARCHIVE(""),
     UNSUPPORTED("unsupported.html");
 
     /**
-     * Drawn as pages: its page says which one is on screen, goes to one when asked, and
-     * turns over for night mode. A PDF, and a Word document since issue #47.
+     * Counted in pages: its page says which one is on screen. A PDF and a Word document,
+     * since issue #47, also go to one when asked. A book has no pages of its own and counts
+     * equal stretches of its files instead, which the viewer shows as how far through it the
+     * reader is.
      */
-    val paged: Boolean get() = this == PDF || this == DOCX
+    val paged: Boolean get() = this == PDF || this == DOCX || this == EPUB
+
+    /**
+     * Turns its pages over for night mode. Not a book: its page is prose and follows the
+     * phone's theme, as a Markdown file's does.
+     */
+    val turnsOver: Boolean get() = this == PDF || this == DOCX
+
+    /**
+     * Has its double tap zoomed by [DoubleTapZoom], and its page turns the WebView's own off. A
+     * page or a picture is about as wide as the screen, so the WebView's own went in by a fifth
+     * to two fifths. Not a sheet: its cells are narrow, and the WebView's own takes one to the
+     * sheet's own size, which is further in than this goes.
+     */
+    val zoomedOnDoubleTap: Boolean
+        get() = this == PDF || this == DOCX || this == PROSE || this == PPTX || this == IMAGE_WEB
 
     companion object {
         private val imageExt = setOf("jpg", "jpeg", "png", "webp", "bmp", "heic", "heif")
@@ -49,6 +72,7 @@ enum class FileKind(val page: String) {
         private val slideExt = setOf("pptx", "ppsx", "pptm", "potx")
         private val mdExt = setOf("md", "markdown")
         private val modelExt = setOf("stl")
+        private val bookExt = setOf("epub")
         private val archiveExt = setOf("zip")
         private val videoExt = setOf(
             "mp4", "m4v", "mov", "mkv", "webm", "3gp", "3g2", "m2ts", "mts", "avi", "flv"
@@ -82,6 +106,7 @@ enum class FileKind(val page: String) {
         private const val MIME_DOC = "application/msword"
         private val proseMimes = setOf(MIME_ODT, MIME_OTT, MIME_DOC, "application/rtf", "text/rtf")
         private const val MIME_ZIP = "application/zip"
+        private const val MIME_EPUB = "application/epub+zip"
 
         /** What Windows calls a zip, and so what one attached on Windows often arrives as. */
         private const val MIME_ZIP_WINDOWS = "application/x-zip-compressed"
@@ -97,6 +122,8 @@ enum class FileKind(val page: String) {
             MIME_XLSX,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
             "application/vnd.ms-excel",
+            "application/vnd.ms-excel.sheet.macroenabled.12",
+            "application/vnd.ms-excel.sheet.binary.macroenabled.12",
             "text/csv",
             MIME_ODS,
         )
@@ -122,8 +149,14 @@ enum class FileKind(val page: String) {
             "application/vnd.ms-pki.stl",
         )
 
-        /** Text whose type is not text/. SubRip's is the one Android 10 and later give a .srt. */
-        private val textMimes = setOf("application/json", "application/xml", "application/x-subrip")
+        /**
+         * Text whose type is not text/. SubRip's is the one Android 10 and later give a .srt,
+         * and the last three are what they give a .js, a .rb and a .sql.
+         */
+        private val textMimes = setOf(
+            "application/json", "application/xml", "application/x-subrip",
+            "application/javascript", "application/x-ruby", "application/x-sql",
+        )
 
         /**
          * An .m3u playlist, which Android labels as audio. It is a list of where its tracks
@@ -136,13 +169,26 @@ enum class FileKind(val page: String) {
         fun isAudioExt(ext: String) = ext in audioExt
 
         /**
+         * Files with no viewer that the card has advice for, in unsupported.js: a .ppt is
+         * told to be saved as .pptx. Read as text they would lose it.
+         */
+        val advisedExt = setOf("ppt")
+
+        /**
+         * Whether a file is one Gander has no viewer for and nothing to say about. These
+         * open as text where their bytes read as text: see [readsAsText]. Issue #51.
+         */
+        fun isUnknown(kind: FileKind, ext: String): Boolean = kind == UNSUPPORTED && ext !in advisedExt
+
+        /**
          * Where a file goes: by its extension, and failing that by the type its provider gave.
          *
          * The type is lowercased first. MIME types are case-insensitive, and the spellings
          * that reach Gander differ: Android 10 and later report every type in lower case,
-         * while the registered one for a .docm or a .pptm says macroEnabled, and an app that
-         * passes on the type a file was sent with can hand over either. That is also why the
-         * manifest, whose matching is case-sensitive, claims those two in both spellings.
+         * while the registered one for a .docm, a .pptm, a .xlsm or a .xlsb says macroEnabled,
+         * and an app that passes on the type a file was sent with can hand over either. That
+         * is also why the manifest, whose matching is case-sensitive, claims those in both
+         * spellings.
          */
         fun detect(ext: String, mime: String?): FileKind = route(ext, mime?.lowercase())
 
@@ -160,6 +206,7 @@ enum class FileKind(val page: String) {
             ext in mdExt -> MD
             ext in textExt -> TEXT
             ext in modelExt -> MODEL
+            ext in bookExt -> EPUB
             ext in archiveExt -> ARCHIVE
             mime == "application/pdf" -> PDF
             // Ahead of the audio branch, which would otherwise take it
@@ -170,6 +217,7 @@ enum class FileKind(val page: String) {
             mime in sheetMimes -> XLSX
             mime in slideMimes -> PPTX
             mime in modelMimes -> MODEL
+            mime == MIME_EPUB -> EPUB
             mime == MIME_ZIP || mime == MIME_ZIP_WINDOWS -> ARCHIVE
             mime?.startsWith("image/") == true -> IMAGE_WEB
             mime?.startsWith("text/") == true -> TEXT
